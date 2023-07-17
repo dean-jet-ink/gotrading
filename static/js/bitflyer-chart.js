@@ -21,6 +21,49 @@ const config = {
     values: [],
     indexes: [],
   },
+  ema: {
+    enable: false,
+    periods: [],
+    values: [],
+    indexes: [],
+  },
+  bbands: {
+    enable: false,
+    period: 20,
+    k: 2,
+    maType: "sma",
+    values: [],
+    indexes: [],
+  },
+  volume: {
+    enable: false,
+    rendered: false,
+  },
+  rsi: {
+    enable: false,
+    period: 14,
+    upper: 70,
+    lower: 30,
+    values: [],
+    indexes: [],
+    rendered: false,
+  },
+  macd: {
+    enable: false,
+    fastPeriod: 9,
+    slowPeriod: 26,
+    signalPeriod: 12,
+    values: [],
+    indexes: [],
+    rendered: false,
+  },
+  hv: {
+    enable: false,
+    periods: [],
+    values: [],
+    indexes: [],
+    rendered: false,
+  },
 };
 
 function drawChart(dataTable) {
@@ -65,6 +108,142 @@ function drawChart(dataTable) {
     view.columns.push(config.candleStick.indexOfColumn + index);
   }
 
+  for (let index of config.ema.indexes) {
+    options.series[index] = { type: "line" };
+    view.columns.push(config.candleStick.indexOfColumn + index);
+  }
+
+  for (let index of config.bbands.indexes) {
+    options.series[index] = { type: "line" };
+    view.columns.push(config.candleStick.indexOfColumn + index);
+  }
+
+  if (config.volume.enable && !config.volume.rendered) {
+    document.getElementById("technical_div").innerHTML += `
+        <div id="volume_div" class="bottom_chart">
+          <span>Volume</span>
+          <div id="volume_chart"></div>
+        </div>
+      `;
+
+    const volumeChart = new google.visualization.ChartWrapper({
+      chartType: "ColumnChart",
+      containerId: "volume_chart",
+      options: {
+        hAxis: { slantedText: false },
+        legend: { position: "none" },
+        series: {},
+      },
+      view: {
+        columns: [{ type: "string" }, 5],
+      },
+    });
+    charts.push(volumeChart);
+
+    config.volume.rendered = true;
+  }
+
+  if (config.rsi.enable && !config.rsi.rendered) {
+    document.getElementById("technical_div").innerHTML += `
+        <div id="rsi_div" class="bottom_chart">
+          <span>RSI</span>
+          <div id="rsi_chart"></div>
+        </div>
+      `;
+
+    const upperIndex = config.candleStick.indexOfColumn + config.rsi.indexes[0];
+    const valueIndes = config.candleStick.indexOfColumn + config.rsi.indexes[1];
+    const lowerIndex = config.candleStick.indexOfColumn + config.rsi.indexes[2];
+
+    var rsiChart = new google.visualization.ChartWrapper({
+      chartType: "LineChart",
+      containerId: "rsi_chart",
+      options: {
+        hAxis: { slantedText: false },
+        legend: { position: "none" },
+        series: {
+          0: { color: "black", lineWidth: 1 },
+          1: { color: "#e2431e" },
+          2: { color: "black", lineWidth: 1 },
+        },
+      },
+      view: {
+        columns: [{ type: "string" }, upperIndex, valueIndes, lowerIndex],
+      },
+    });
+    charts.push(rsiChart);
+    config.rsi.rendered = true;
+  }
+
+  if (config.macd.enable && !config.macd.rendered) {
+    document.getElementById("technical_div").innerHTML += `
+        <div id="macd_div" class="bottom_chart">
+          <span>MACD</span>
+          <div id="macd_chart"></div>
+        </div>
+      `;
+
+    const macdIndex = config.candleStick.indexOfColumn + config.macd.indexes[0];
+    const macdSignalIndex =
+      config.candleStick.indexOfColumn + config.macd.indexes[1];
+    const macdHistIndex =
+      config.candleStick.indexOfColumn + config.macd.indexes[2];
+
+    const macdChart = new google.visualization.ChartWrapper({
+      chartType: "ComboChart",
+      containerId: "macd_chart",
+      options: {
+        legend: { position: "none" },
+        seriesType: "bars",
+        series: {
+          1: { type: "line", lineWidth: 1 },
+          2: { type: "line", lineWidth: 1 },
+        },
+      },
+      view: {
+        columns: [
+          { type: "string" },
+          macdIndex,
+          macdSignalIndex,
+          macdHistIndex,
+        ],
+      },
+    });
+
+    charts.push(macdChart);
+    config.macd.rendered = true;
+  }
+
+  if (config.hv.enable && !config.hv.rendered) {
+    document.getElementById("technical_div").innerHTML += `
+        <div id="hv_div" class="bottom_chart">
+          <span>HV</span>
+          <div id="hv_chart"></div>
+        </div>
+      `;
+
+    const series = {};
+    const columns = [{ type: "string" }];
+    for (let index of config.hv.indexes) {
+      series[index] = { lineWidth: 1 };
+      columns.push(config.candleStick.indexOfColumn + index);
+    }
+
+    const hvChart = new google.visualization.ChartWrapper({
+      chartType: "LineChart",
+      containerId: "hv_chart",
+      options: {
+        legend: { position: "none" },
+        series: series,
+      },
+      view: {
+        columns: columns,
+      },
+    });
+    charts.push(hvChart);
+    config.hv.rendered = true;
+  }
+
   const controlWrapper = new google.visualization.ControlWrapper({
     controlType: "ChartRangeFilter",
     containerId: "filter_div",
@@ -86,8 +265,18 @@ function drawChart(dataTable) {
 function initConfig() {
   config.dataTable.index = 0;
   config.dataTable.value = null;
-  config.sma.indexes = [];
   config.sma.values = [];
+  config.sma.indexes = [];
+  config.ema.values = [];
+  config.ema.indexes = [];
+  config.bbands.values = [];
+  config.bbands.indexes = [];
+  config.rsi.values = [];
+  config.rsi.indexes = [];
+  config.macd.values = [];
+  config.macd.indexes = [];
+  config.hv.values = [];
+  config.hv.indexes = [];
 }
 
 function send() {
@@ -106,6 +295,40 @@ function send() {
     params.append("sma", true);
     for (let i = 0; i < config.sma.periods.length; i++) {
       params.append(`sma_period${i + 1}`, config.sma.periods[i]);
+    }
+  }
+
+  if (config.ema.enable) {
+    params.append("ema", true);
+    for (let i = 0; i < config.ema.periods.length; i++) {
+      params.append(`ema_period${i + 1}`, config.ema.periods[i]);
+    }
+  }
+
+  if (config.bbands.enable) {
+    params.append("bbands", true);
+    params.append("bbands_period", config.bbands.period);
+    params.append("bbands_k", config.bbands.k);
+    params.append("bbands_maType", config.bbands.maType);
+  }
+
+  if (config.rsi.enable) {
+    params.append("rsi", true);
+    params.append("rsi_period", config.rsi.period);
+  }
+
+  if (config.macd.enable) {
+    params.append("macd", true);
+    params.append("macd_fastPeriod", config.macd.fastPeriod);
+    params.append("macd_slowPeriod", config.macd.slowPeriod);
+    params.append("macd_signalPeriod", config.macd.signalPeriod);
+  }
+
+  if (config.hv.enable) {
+    params.append("hv", true);
+    console.log(config.hv.periods);
+    for (let i = 0; i < config.hv.periods.length; i++) {
+      params.append(`hv_period${i + 1}`, config.hv.periods[i]);
     }
   }
 
@@ -134,6 +357,70 @@ function send() {
         }
       }
 
+      if (data["emas"] != undefined) {
+        const emas = data["emas"];
+        for (let ema of emas) {
+          dataTable.addColumn("number", `EMA${ema.period}`);
+          config.ema.indexes.push(++config.dataTable.index);
+          config.ema.values.push(ema.values);
+        }
+      }
+
+      if (data["bbands"] != undefined) {
+        const bbands = data["bbands"];
+
+        config.bbands.indexes.push(++config.dataTable.index);
+        config.bbands.indexes.push(++config.dataTable.index);
+        config.bbands.indexes.push(++config.dataTable.index);
+        dataTable.addColumn("number", `BBands-Upper${bbands.k}`);
+        dataTable.addColumn("number", `BBands-Mid${bbands.period}`);
+        dataTable.addColumn("number", `BBands-Lower${bbands.k}`);
+        config.bbands.values.push(bbands.upper);
+        config.bbands.values.push(bbands.mid);
+        config.bbands.values.push(bbands.lower);
+      }
+
+      if (data["rsi"] != undefined) {
+        const rsi = data["rsi"];
+
+        config.rsi.indexes.push(++config.dataTable.index);
+        config.rsi.indexes.push(++config.dataTable.index);
+        config.rsi.indexes.push(++config.dataTable.index);
+        dataTable.addColumn("number", `RSI-Upper${config.rsi.upper}%`);
+        dataTable.addColumn("number", `RSI-Values${config.rsi.period}`);
+        dataTable.addColumn("number", `RSI-Lower${config.rsi.lower}%`);
+
+        config.rsi.values = rsi.values;
+      }
+
+      if (data["macd"] != undefined) {
+        const macd = data["macd"];
+
+        config.macd.indexes.push(++config.dataTable.index);
+        config.macd.indexes.push(++config.dataTable.index);
+        config.macd.indexes.push(++config.dataTable.index);
+        dataTable.addColumn(
+          "number",
+          `MACD(${macd.fastPeriod}, ${macd.slowPeriod})`
+        );
+        dataTable.addColumn("number", `MACD-Signal${macd.signalPeriod}`);
+        dataTable.addColumn("number", `MACD-Histgram`);
+
+        config.macd.values.push(macd["values"]);
+        config.macd.values.push(macd["signal_values"]);
+        config.macd.values.push(macd["histgram"]);
+      }
+
+      if (data["hvs"] != undefined) {
+        const hvs = data["hvs"];
+
+        for (let i = 0; i < config.hv.periods.length; i++) {
+          config.hv.indexes.push(++config.dataTable.index);
+          dataTable.addColumn("number", `HV${config.hv.periods[i]}`);
+          config.hv.values.push(hvs[i]["values"]);
+        }
+      }
+
       const candles = data["candles"];
       const rows = [];
       for (let i = 0; i < candles.length; i++) {
@@ -155,16 +442,102 @@ function send() {
           }
         }
 
+        for (let ema of config.ema.values) {
+          if (ema[i] == 0) {
+            row.push(null);
+          } else {
+            row.push(ema[i]);
+          }
+        }
+
+        for (let bband of config.bbands.values) {
+          if (bband[i] == 0) {
+            row.push(null);
+          } else {
+            row.push(bband[i]);
+          }
+        }
+
+        if (config.rsi.enable) {
+          row.push(config.rsi.upper);
+          if (config.rsi.values[i] == 0) {
+            row.push(null);
+          } else {
+            row.push(config.rsi.values[i]);
+          }
+          row.push(config.rsi.lower);
+        }
+
+        for (let value of config.macd.values) {
+          if (value[i] == 0) {
+            row.push(null);
+          } else {
+            row.push(value[i]);
+          }
+        }
+
+        for (let value of config.hv.values) {
+          if (value[i] == 0) {
+            row.push(null);
+          } else {
+            row.push(value[i]);
+          }
+        }
+
         rows.push(row);
       }
 
       dataTable.addRows(rows);
+      config.dataTable.value = dataTable;
       drawChart(dataTable);
     });
 }
 
+function changeDuration(duration) {
+  config.candleStick.duration = duration;
+  send();
+}
+
+function initPeriods(indicator) {
+  const periods = document.querySelectorAll(`.${indicator}Period`);
+  for (let i = 0; i < periods.length; i++) {
+    config[indicator].periods[i] = periods[i].value;
+  }
+}
+
+function switchIndicator(indicator, isChecked) {
+  config[indicator].enable = isChecked;
+  send();
+}
+
+function changePeriods(indicator, period, index) {
+  config[indicator].periods[index] = period;
+  send();
+}
+
+function changePeriod(indicator, period) {
+  config[indicator].period = period;
+  send();
+}
+
+function switchIndicatorOfTechnicalChart(indicator, isChecked, divId) {
+  config[indicator].enable = isChecked;
+  if (isChecked) {
+    send();
+  } else {
+    config[indicator].rendered = false;
+    document.getElementById(divId).remove();
+  }
+}
+
 window.onload = () => {
   send();
+
+  const initialization = ["sma", "ema", "hv"];
+
+  for (let indicator of initialization) {
+    initPeriods(indicator);
+  }
 
   setInterval(send, config.api.interval);
 
@@ -176,20 +549,17 @@ window.onload = () => {
     config.api.enable = true;
   });
 
-  document.getElementById("sma").addEventListener("change", (event) => {
-    if (event.target.checked) {
-      config.sma.enable = true;
-    } else {
-      config.sma.enable = false;
-    }
-    send();
+  document.getElementById("bbandsK").addEventListener("input", (event) => {
+    config.bbands.k = event.target.value;
   });
-  for (let i = 0; i < 3; i++) {
-    const period = document.getElementById(`smaPeriod${i + 1}`);
-    period.addEventListener("input", (event) => {
-      config.sma.periods[i] = event.target.value;
-      send();
-    });
-    config.sma.periods[i] = period.value;
-  }
+
+  document.getElementById("volume").addEventListener("change", (event) => {
+    config.volume.enable = event.target.checked;
+    if (!event.target.checked) {
+      document.getElementById("volume_div").remove();
+      config.volume.rendered = false;
+    } else {
+      drawChart(config.dataTable.value);
+    }
+  });
 };

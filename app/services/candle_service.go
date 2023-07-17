@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"encoding/json"
+	"gotrading/algo"
 	"gotrading/api/bitflyer"
 	"gotrading/app/models"
 	"gotrading/app/repositories"
@@ -119,8 +120,12 @@ func (s *DataFrameCandleService) MarshalDataFrame() ([]byte, error) {
 	return js, nil
 }
 
-func (s *DataFrameCandleService) AddSMA(period int) {
-	closes := s.DataFrame.Closes()
+func (s *DataFrameCandleService) Closes() []float64 {
+	return s.DataFrame.Closes()
+}
+
+func (s *DataFrameCandleService) AddSMA(period int) bool {
+	closes := s.Closes()
 
 	if len(closes) >= period {
 		s.DataFrame.SMAs = append(s.DataFrame.SMAs, models.SMA{
@@ -128,4 +133,112 @@ func (s *DataFrameCandleService) AddSMA(period int) {
 			Values: talib.Sma(closes, period),
 		})
 	}
+
+	return false
+}
+
+func (s *DataFrameCandleService) AddEMA(period int) bool {
+	closes := s.Closes()
+
+	if len(closes) >= period {
+		s.DataFrame.EMAs = append(s.DataFrame.EMAs, models.EMA{
+			Period: period,
+			Values: talib.Ema(closes, period),
+		})
+	}
+
+	return false
+}
+
+// moving average type in talib
+// const (
+//
+//	SMA MaType = iota
+//	EMA
+//	WMA
+//	DEMA
+//	TEMA
+//	TRIMA
+//	KAMA
+//	MAMA
+//	T3MA
+//
+// )
+func (s *DataFrameCandleService) AddBBands(period int, k float64, maType string) bool {
+	closes := s.Closes()
+
+	typeMap := map[string]int{
+		"sma":   0,
+		"ema":   1,
+		"wma":   2,
+		"dema":  3,
+		"tema":  4,
+		"trima": 5,
+	}
+
+	if len(closes) >= period {
+		upper, mid, lower := talib.BBands(closes, period, k, k, talib.MaType(typeMap[maType]))
+		s.DataFrame.BBands = &models.BBands{
+			Period: period,
+			K:      k,
+			Upper:  upper,
+			Mid:    mid,
+			Lower:  lower,
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (s *DataFrameCandleService) AddRSI(period int) bool {
+	closes := s.Closes()
+
+	if len(closes) >= period {
+		s.DataFrame.RSI = &models.RSI{
+			Period: period,
+			Values: talib.Rsi(closes, period),
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (s *DataFrameCandleService) AddMACD(fastPeriod, slowPeriod, signalPeriod int) bool {
+	closes := s.Closes()
+
+	if len(closes) >= slowPeriod {
+		values, signalValues, histgram := talib.Macd(closes, fastPeriod, slowPeriod, signalPeriod)
+
+		s.DataFrame.MACD = &models.MACD{
+			FastPeriod:   fastPeriod,
+			SlowPeriod:   slowPeriod,
+			SignalPeriod: signalPeriod,
+			Values:       values,
+			SignalValues: signalValues,
+			Histgram:     histgram,
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (s *DataFrameCandleService) AddHV(period int) bool {
+	closes := s.Closes()
+
+	if len(closes) >= period {
+		s.DataFrame.HVs = append(s.DataFrame.HVs, models.HV{
+			Period: period,
+			Values: algo.HV(closes, period),
+		})
+
+		return true
+	}
+
+	return false
 }
