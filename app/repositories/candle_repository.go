@@ -10,7 +10,7 @@ import (
 
 type CandleRepository interface {
 	FindByTime(productCode string, duration time.Duration, t time.Time) (*models.Candle, error)
-	FindAllWithLimit(productCode string, duration time.Duration, limit int) ([]*models.Candle, error)
+	FindWithLimit(productCode string, duration time.Duration, limit int) ([]*models.Candle, error)
 	Create(productCode string, duration time.Duration, candle *models.Candle) error
 	Update(productCode string, duration time.Duration, candle *models.Candle) error
 }
@@ -38,7 +38,7 @@ func (r *BitflyerCandleRepository) FindByTime(productCode string, duration time.
 	return candle, nil
 }
 
-func (r *BitflyerCandleRepository) FindAllWithLimit(productCode string, duration time.Duration, limit int) ([]*models.Candle, error) {
+func (r *BitflyerCandleRepository) FindWithLimit(productCode string, duration time.Duration, limit int) ([]*models.Candle, error) {
 	cmd := fmt.Sprintf(`
 		SELECT * 
 		FROM (
@@ -55,6 +55,7 @@ func (r *BitflyerCandleRepository) FindAllWithLimit(productCode string, duration
 		log.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	var candles []*models.Candle
 	for rows.Next() {

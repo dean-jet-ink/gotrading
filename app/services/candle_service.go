@@ -97,7 +97,7 @@ func NewDataFrameCandleService(candleRepository repositories.CandleRepository) *
 }
 
 func (s *DataFrameCandleService) SetDataFrame(productCode string, duration time.Duration, limit int) error {
-	candles, err := s.candleRepository.FindAllWithLimit(productCode, duration, limit)
+	candles, err := s.candleRepository.FindWithLimit(productCode, duration, limit)
 	if err != nil {
 		return err
 	}
