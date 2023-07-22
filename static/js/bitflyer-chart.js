@@ -64,6 +64,11 @@ const config = {
     indexes: [],
     rendered: false,
   },
+  event: {
+    enable: false,
+    signals: [],
+    indexes: [],
+  },
 };
 
 function drawChart(dataTable) {
@@ -116,6 +121,21 @@ function drawChart(dataTable) {
   for (let index of config.bbands.indexes) {
     options.series[index] = { type: "line" };
     view.columns.push(config.candleStick.indexOfColumn + index);
+  }
+
+  if (config.event.enable) {
+    options.series[config.event.indexes[0]] = {
+      type: "line",
+      tooltip: "none",
+      enableInteractivity: false,
+      lineWidth: 0,
+    };
+    view.columns.push(
+      config.candleStick.indexOfColumn + config.event.indexes[0]
+    );
+    view.columns.push(
+      config.candleStick.indexOfColumn + config.event.indexes[1]
+    );
   }
 
   if (config.volume.enable && !config.volume.rendered) {
@@ -277,6 +297,8 @@ function initConfig() {
   config.macd.indexes = [];
   config.hv.values = [];
   config.hv.indexes = [];
+  config.event.indexes = [];
+  config.event.signals = [];
 }
 
 function send() {
@@ -326,10 +348,13 @@ function send() {
 
   if (config.hv.enable) {
     params.append("hv", true);
-    console.log(config.hv.periods);
     for (let i = 0; i < config.hv.periods.length; i++) {
       params.append(`hv_period${i + 1}`, config.hv.periods[i]);
     }
+  }
+
+  if (config.event.enable) {
+    params.append("event", true);
   }
 
   fetch(`/api/candle/?${params}`)
@@ -380,6 +405,25 @@ function send() {
         config.bbands.values.push(bbands.lower);
       }
 
+      if (data["events"] != undefined) {
+        const events = data["events"];
+
+        dataTable.addColumn("number", "Marker");
+        dataTable.addColumn({ type: "string", role: "annotation" });
+
+        config.event.indexes.push(++config.dataTable.index);
+        config.event.indexes.push(++config.dataTable.index);
+        config.event.signals = events.signals;
+
+        if (events["profit"] != undefined) {
+          const profit = Math.floor(events["profit"] * 100) / 100;
+
+          document.getElementById("profit").innerHTML = `
+            <div>Profit  ${profit}円</div>
+          `;
+        }
+      }
+
       if (data["rsi"] != undefined) {
         const rsi = data["rsi"];
 
@@ -424,14 +468,15 @@ function send() {
       const candles = data["candles"];
       const rows = [];
       for (let i = 0; i < candles.length; i++) {
-        const date = new Date(candles[i].time);
+        let candle = candles[i];
+        const date = new Date(candle.time);
         const row = [
           date,
-          candles[i].low,
-          candles[i].open,
-          candles[i].close,
-          candles[i].high,
-          candles[i].volume,
+          candle.low,
+          candle.open,
+          candle.close,
+          candle.high,
+          candle.volume,
         ];
 
         for (let sma of config.sma.values) {
@@ -481,6 +526,19 @@ function send() {
             row.push(null);
           } else {
             row.push(value[i]);
+          }
+        }
+
+        if (config.event.enable) {
+          let signals = config.event.signals;
+
+          if (signals.length != 0 && signals[0].time == candle.time) {
+            row.push(candle.high * 1.001);
+            row.push(signals[0].side);
+            config.event.signals.shift();
+          } else {
+            row.push(null);
+            row.push(null);
           }
         }
 
@@ -561,5 +619,13 @@ window.onload = () => {
     } else {
       drawChart(config.dataTable.value);
     }
+  });
+
+  document.getElementById("event").addEventListener("change", (event) => {
+    config.event.enable = event.target.checked;
+    if (!config.event.enable) {
+      document.getElementById("profit").innerHTML = "";
+    }
+    send();
   });
 };

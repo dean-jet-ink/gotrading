@@ -18,6 +18,10 @@ type configList struct {
 	dbName        string
 	dbDriver      string
 	port          int
+	backtest      bool
+	usePercent    float64
+	stopPercent   float64
+	dateLimit     int
 }
 
 var config *configList
@@ -41,6 +45,10 @@ func init() {
 		productCode:   cfg.Section("gotrading").Key("product_code").String(),
 		tradeDuration: durations[cfg.Section("gotrading").Key("trade_duration").String()],
 		durations:     durations,
+		backtest:      cfg.Section("gotrading").Key("backtest").MustBool(),
+		usePercent:    cfg.Section("gotrading").Key("use_percent").MustFloat64(),
+		stopPercent:   cfg.Section("gotrading").Key("stop_percent").MustFloat64(),
+		dateLimit:     cfg.Section("gotrading").Key("date_limit").MustInt(),
 		apiKey:        cfg.Section("bitflyer").Key("api_key").String(),
 		apiSecret:     cfg.Section("bitflyer").Key("api_secret").String(),
 		dbName:        cfg.Section("db").Key("name").String(),
@@ -91,4 +99,20 @@ func (c *configList) DBDriver() string {
 
 func (c *configList) Port() int {
 	return c.port
+}
+
+func (c *configList) Backtest() bool {
+	return c.backtest
+}
+
+func (c *configList) UsePercent() float64 {
+	return c.usePercent
+}
+
+func (c *configList) StopPercent() float64 {
+	return c.stopPercent
+}
+
+func (c *configList) DateLimit() int {
+	return c.dateLimit
 }

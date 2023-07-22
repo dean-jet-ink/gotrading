@@ -28,9 +28,14 @@ func (c *bitflyerCandleController) APIUrl() string {
 	return c.apiUrl
 }
 
+func (c *bitflyerCandleController) DataFrame() *models.DataFrameCandle {
+	return c.dataFrameCandleService.DataFrame
+}
+
 func NewBitflyerCandleController(db *sql.DB) CandleController {
 	candleRepository := repositories.NewBitflyerCandleRepository(db)
-	dataFrameCandleService := services.NewDataFrameCandleService(candleRepository)
+	signalEventRepository := repositories.NewSignalRepository(db)
+	dataFrameCandleService := services.NewDataFrameCandleService(candleRepository, signalEventRepository)
 
 	return &bitflyerCandleController{
 		apiUrl:                 "/api/candle/",
@@ -174,6 +179,11 @@ func (c *bitflyerCandleController) APIHandler(w http.ResponseWriter, r *http.Req
 				c.dataFrameCandleService.AddHV(period)
 			}
 		}
+	}
+
+	if values.Get("event") != "" {
+		t := c.DataFrame().Candles[0].Time
+		c.dataFrameCandleService.AddEvents(t)
 	}
 
 	js, err := c.dataFrameCandleService.MarshalDataFrame()

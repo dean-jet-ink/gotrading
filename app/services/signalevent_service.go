@@ -93,15 +93,3 @@ func (s *SignalEventService) MarshalSignalEvents() ([]byte, error) {
 
 	return js, nil
 }
-
-func (s *SignalEventService) GetEventWithLimit(limit int) (*models.SignalEvents, error) {
-	return s.signalEventRepository.FindByProductCodeWithLimit(s.productCode, limit)
-}
-
-func (s *SignalEventService) GetEventAfterTime(t time.Time) (*models.SignalEvents, error) {
-	return s.signalEventRepository.FindByProductCodeAndAfterTime(s.productCode, t)
-}
-
-func (s *SignalEventService) CollectEventAfterTime(t time.Time) *models.SignalEvents {
-	return s.signalEvents.CollectAfterTime(t)
-}

@@ -23,6 +23,7 @@ type DataFrameCandle struct {
 	RSI         *RSI          `json:"rsi,omitempty"`
 	MACD        *MACD         `json:"macd,omitempty"`
 	HVs         []HV          `json:"hvs,omitempty"`
+	Events      *SignalEvents `json:"events,omitempty"`
 }
 
 type SMA struct {

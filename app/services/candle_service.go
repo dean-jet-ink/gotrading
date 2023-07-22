@@ -86,13 +86,15 @@ func (s *StreamCandleService) StreamIngestionData(apiKey, secret, productCode st
 }
 
 type DataFrameCandleService struct {
-	candleRepository repositories.CandleRepository
-	DataFrame        *models.DataFrameCandle
+	candleRepository      repositories.CandleRepository
+	signalEventRepository repositories.SignalEventRepository
+	DataFrame             *models.DataFrameCandle
 }
 
-func NewDataFrameCandleService(candleRepository repositories.CandleRepository) *DataFrameCandleService {
+func NewDataFrameCandleService(candleRepository repositories.CandleRepository, signalEventRepository repositories.SignalEventRepository) *DataFrameCandleService {
 	return &DataFrameCandleService{
-		candleRepository: candleRepository,
+		candleRepository:      candleRepository,
+		signalEventRepository: signalEventRepository,
 	}
 }
 
@@ -241,4 +243,19 @@ func (s *DataFrameCandleService) AddHV(period int) bool {
 	}
 
 	return false
+}
+
+func (s *DataFrameCandleService) AddEvents(t time.Time) bool {
+	signalEvents, err := s.signalEventRepository.FindByProductCodeAndAfterTime(s.DataFrame.ProductCode, t)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	if len(signalEvents.Signals) == 0 {
+		return false
+	}
+
+	s.DataFrame.Events = signalEvents
+	return true
 }
